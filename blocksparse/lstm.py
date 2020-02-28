@@ -19,7 +19,7 @@ lstm_gates4_op      = _op_module.lstm_gates4
 lstm_gates4_grad_op = _op_module.lstm_gates4_grad
 bias_grad_op        = _op_module.bias_grad
 
-def fused_lstm_gates(c, *args, bias=None, forget_bias=1.0, name=None):
+def fused_lstm_gates(c, bias=None, forget_bias=1.0, name=None, *args):
     # returns c_next, h_next
 
     dev = args[0].op.device.lower()
@@ -136,7 +136,8 @@ class FusedBasicLSTMCell(BasicLSTMCell):
 
     h = tf.matmul( tf.concat([inputs, h], 1), self._kernel )
 
-    c, h = fused_lstm_gates(c, h, bias=self._bias, forget_bias=self._forget_bias)
+    c, h = fused_lstm_gates(c, self._bias, self._forget_bias, None, h)
+    #c, h = fused_lstm_gates(c, h, bias=self._bias, forget_bias=self._forget_bias)
 
     if self._state_is_tuple:
       state = LSTMStateTuple(c, h)
@@ -184,9 +185,10 @@ def grouped_lstm(inputs, width, timesteps, initial_state, scope="grouped_lstm", 
 
             if layernorm:
                 h    = layer_norm(h, g, b, axis=1, segments=4)
-                c, h = fused_lstm_gates(c, h, forget_bias=1.0)
+                #c, h = fused_lstm_gates(c, h, forget_bias=1.0)
+                c, h = fused_lstm_gates(c, None, 1.0, None, h)
             else:
-                c, h = fused_lstm_gates(c, h, bias=b, forget_bias=1.0)
+                c, h = fused_lstm_gates(c, b, 1.0, None, h)
 
             outputs.append(h)
 

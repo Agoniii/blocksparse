@@ -536,7 +536,7 @@ class LSTM_vanilla(object):
             o = ew.add(o, xo)
             u = ew.add(u, xu)
 
-        c, h = ew.fused_lstm_gates(c, i, f, o, u)
+        c, h = ew.fused_lstm_gates(c, None, 1.0, None, i, f, o, u)
         return c, h, mask
 
         # i = ew.sigmoid(i)
@@ -797,7 +797,7 @@ class LSTM_scott(object):
         else:
             mask = None
 
-        c, h = ew.fused_lstm_gates(c, i, f, o, u)
+        c, h = ew.fused_lstm_gates(c, None, 1.0, None, i, f, o, u)
         return c, h, mask
 
         # i = ew.sigmoid(i)

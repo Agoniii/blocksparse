@@ -72,7 +72,7 @@ class LSTMGatesTest(tf.test.TestCase):
                             else:
                                 bias = b
 
-                            cf, hf = lstm.fused_lstm_gates(cf, hf, bias=bias, forget_bias=1.0)
+                            cf, hf = lstm.fused_lstm_gates(cf, bias, 1.0, None, hf)
 
                             if device == "gpu" and dtype is not tf.float32:
                                 cf = ew.float_cast(cf, dtype=tf.float32, dx_dtype=dtype)

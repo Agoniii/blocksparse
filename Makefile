@@ -35,19 +35,27 @@ NV_LIB?=$(CUDA_HOME)/lib64
 TF_INC=$(shell python -c 'from os.path import dirname; import tensorflow as tf; print(dirname(dirname(tf.sysconfig.get_include())))')
 TF_LIB=$(shell python -c 'import tensorflow as tf; print(tf.sysconfig.get_lib())')
 TF_ABI=$(shell python -c 'import tensorflow as tf; print(tf.__cxx11_abi_flag__ if "__cxx11_abi_flag__" in tf.__dict__ else 0)')
+TF_CFLAGS=( $(python -c 'import tensorflow as tf; print(" ".join(tf.sysconfig.get_compile_flags()))') )
+TF_LFLAGS=( $(python -c 'import tensorflow as tf; print(" ".join(tf.sysconfig.get_link_flags()))') )
+#echo "TF_CFLAGS " ${TF_CFLAGS[@]} 
+#echo "TF_LFLAGS " ${TF_LFLAGS[@]}
+# TF_CFLAGS  -I/usr/lib64/python2.7/site-packages/tensorflow_core/include -D_GLIBCXX_USE_CXX11_ABI=1
+# TF_LFLAGS  -L/usr/lib64/python2.7/site-packages/tensorflow_core -l:libtensorflow_framework.so.1
 
-CCFLAGS=-std=c++11 -O3 -fPIC -DGOOGLE_CUDA=1 -D_GLIBCXX_USE_CXX11_ABI=$(TF_ABI) \
+CCFLAGS=-std=c++11 -O3 -fPIC -D_GLIBCXX_USE_CXX11_ABI=1 \
 	-I$(TARGET) \
 	-I$(NV_INC) \
-	-I$(TF_INC)/tensorflow/include \
-	-I$(TF_INC)/tensorflow/include/external/nsync/public \
-	-I$(TF_INC)/external/local_config_cuda/cuda \
+	-I$(TF_INC)/tensorflow_core \
+	-I$(TF_INC)/tensorflow_core/include \
+	-I$(TF_INC)/tensorflow_core/include/external/nsync/public \
+	-I$(TF_INC)/tensorflow_core/include/external/local_config_cuda/cuda \
+	-I/usr/lib/python2.7/site-packages/tensorflow_core/include \
 	-I/usr/local
 
 	# -I$(NCCL_INC) \
 	# -I$(MPI_INC) \
 
-NVCCFLAGS=-DGOOGLE_CUDA=1 -D_GLIBCXX_USE_CXX11_ABI=$(TF_ABI) -O3 -Xcompiler -fPIC -std=c++11 --prec-div=false --prec-sqrt=false \
+NVCCFLAGS=-DGOOGLE_CUDA=1 -D_GLIBCXX_USE_CXX11_ABI=1 -O3 -Xcompiler -fPIC -std=c++11 --prec-div=false --prec-sqrt=false \
  	-gencode=arch=compute_35,code=sm_35 \
 	-gencode=arch=compute_50,code=sm_50 \
 	-gencode=arch=compute_52,code=sm_52 \
@@ -104,12 +112,13 @@ $(TARGET)/blocksparse_kernels.h: src/sass/*.sass
 	python generate_kernels.py
 
 blocksparse/blocksparse_ops.so: $(OBJS) $(CU_OBJS)
-	g++ $^ -shared -o $@ -L$(TF_LIB) -L$(NV_LIB) -ltensorflow_framework -lcudart -lcuda
+	g++ $^ -shared -o $@ -L$(TF_LIB) -L$(NV_LIB) ${TF_LFLAGS[@]} -L/usr/local/cuda-10.0/lib64/stubs/ -lcudart -lcuda -l:libtensorflow_framework.so.1
+	#g++ $^ -shared -o $@ -L$(TF_LIB) -L$(NV_LIB) -ltensorflow_framework -lcudart -lcuda
 
 	# -L$(NCCL_LIB) -L$(MPI_LIB)
 	# -lnccl -lmpi
 
-$(TARGET)/%.cu.o: src/%.cu $(TARGET)/blocksparse_kernels.h
+$(TARGET)/%.cu.o: src/%.cu src/*.h $(TARGET)/blocksparse_kernels.h
 	mkdir -p $(shell dirname $@)
 	nvcc $(NVCCFLAGS) -c $< -o $@
 

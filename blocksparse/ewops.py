@@ -221,7 +221,7 @@ def dropout(x, keep_prob, mask=None, mask_shape=None):
             size = 1
             for m_dim, x_dim in zip(mask_shape, x.shape.as_list()):
                 # we don't currently support placeholder dims when broadcasting the dropout mask
-                assert m_dim == 1 or m_dim == x_dim, f"incompatible mask_shape: {mask_shape} x.shape: {x.shape}"
+                assert m_dim == 1 or m_dim == x_dim, "incompatible mask_shape:" + (mask_shape, x.shape)
                 size *= m_dim
         else:
             size = 0
